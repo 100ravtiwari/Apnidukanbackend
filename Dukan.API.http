@@ -1,0 +1,113 @@
+@baseUrl = http://localhost:5149/api
+
+### 1. Customer Login (Pre-seeded user)
+# @name customerLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@dukan.com",
+  "password": "Customer@123"
+}
+
+### Store Customer Token
+@customerToken = {{customerLogin.response.body.data.token}}
+
+### 2. Admin Login (Pre-seeded owner)
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@dukan.com",
+  "password": "Admin@123"
+}
+
+### Store Admin Token
+@adminToken = {{adminLogin.response.body.data.token}}
+
+### 3. Register New Customer
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Amit Kumar",
+  "email": "amit.kumar@example.com",
+  "password": "Password@123",
+  "phone": "+91 9988776655",
+  "address": "B-12, Sector 15",
+  "city": "Noida",
+  "pincode": "201301"
+}
+
+### 4. Get Current User Profile
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{customerToken}}
+
+### 5. Get All Categories
+GET {{baseUrl}}/categories
+
+### 6. Get Products (Search, Filter by Category, Pagination)
+GET {{baseUrl}}/products?search=atta&sortBy=price_asc&pageNumber=1&pageSize=10
+
+### 7. Get Product by ID
+GET {{baseUrl}}/products/1
+
+### 8. Add Item to Cart
+POST {{baseUrl}}/cart
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "productId": 2,
+  "quantity": 1
+}
+
+### 9. View Cart
+GET {{baseUrl}}/cart
+Authorization: Bearer {{customerToken}}
+
+### 10. Place Order (Checkout)
+POST {{baseUrl}}/orders
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "customerName": "Rahul Sharma",
+  "customerPhone": "+91 9123456780",
+  "deliveryAddress": "Flat 402, Green Valley Apartments",
+  "deliveryCity": "Delhi",
+  "deliveryPincode": "110052",
+  "paymentMethod": "COD",
+  "notes": "Deliver in the evening after 6 PM please"
+}
+
+### 11. View My Orders
+GET {{baseUrl}}/orders/my-orders
+Authorization: Bearer {{customerToken}}
+
+### 12. Admin: Get Dashboard Summary (Sales, Pending Orders, Low Stock Alerts)
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{adminToken}}
+
+### 13. Admin: View All Orders
+GET {{baseUrl}}/orders?status=Pending
+Authorization: Bearer {{adminToken}}
+
+### 14. Admin: Update Order Status
+PATCH {{baseUrl}}/orders/1/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "Delivered"
+}
+
+### 15. Admin: Update Product Stock
+PATCH {{baseUrl}}/products/11/stock
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "stockQuantity": 50
+}

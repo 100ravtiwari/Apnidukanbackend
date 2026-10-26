@@ -1,0 +1,30 @@
+# ==========================================
+# ⚙️ .NET Core Backend Git Ignore
+# ==========================================
+
+# 1. Build & Compilation Artifacts
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# 2. Local Databases & Logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# 3. Security & Cloud Credentials (NEVER COMMIT)
+gcpkey.json
+*.json.secret
+*key*.json
+appsettings.Production.json
+
+# 4. OS & IDE files
+.vscode/
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
