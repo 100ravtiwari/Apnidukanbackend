@@ -2,7 +2,7 @@ name: Backend CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev ]
   workflow_dispatch:
 
 env:
