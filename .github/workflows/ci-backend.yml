@@ -1,0 +1,60 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GCP_REGION: asia-south1
+  GAR_REPO: dukan-repo
+  IMAGE_NAME: backend
+
+jobs:
+  build-and-deploy:
+    name: Build, Test, Push & Update GitOps
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore Dukan.API.csproj
+
+      - name: Build Backend
+        run: dotnet build Dukan.API.csproj --configuration Release --no-restore
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & Push Docker Image
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          FULL_IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.GAR_REPO }}/${{ env.IMAGE_NAME }}"
+          docker build -t "${FULL_IMAGE}:${IMAGE_TAG}" -t "${FULL_IMAGE}:latest" .
+          docker push "${FULL_IMAGE}:${IMAGE_TAG}"
+          docker push "${FULL_IMAGE}:latest"
+          echo "IMAGE_URI=${FULL_IMAGE}:${IMAGE_TAG}" >> $GITHUB_ENV
+
+      # Optional step to update GitOps candidate Green manifest if using GitOps repo
+      - name: Update Green Deployment Manifest
+        if: env.IMAGE_URI != ''
+        run: |
+          echo "Candidate image published: ${{ env.IMAGE_URI }}"
+          echo "Argo CD will automatically sync or you can run ./k8s/scripts/switch-traffic.sh green"

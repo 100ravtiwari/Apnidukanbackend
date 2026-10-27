@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.vscode/
+.git/
+.gitignore
+*.db
+*.db-journal
+*.log
+gcpkey.json
+migration_data.json
