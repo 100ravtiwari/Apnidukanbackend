@@ -30,13 +30,13 @@ public class UsersController : ControllerBase
         }
     }
 
-    // GET: /api/users/delivery-partners (Admin & OrderManager can see available delivery partners)
+    // GET: /api/users/delivery-partners (Admin & OrderManager can see active approved delivery partners)
     [Authorize(Roles = "Admin,OrderManager")]
     [HttpGet("delivery-partners")]
     public async Task<ActionResult<ApiResponse<List<DeliveryPartnerStatusDto>>>> GetDeliveryPartners()
     {
         var riders = await _context.Users
-            .Where(u => u.Role == "DeliveryBoy")
+            .Where(u => u.Role == "DeliveryBoy" && (u.ApprovalStatus == "Approved" || u.ApprovalStatus == null))
             .AsNoTracking()
             .ToListAsync();
 
@@ -53,30 +53,148 @@ public class UsersController : ControllerBase
             Name = r.Name,
             Email = r.Email,
             Phone = r.Phone,
-            ActiveDeliveriesCount = activeDeliveryCounts.TryGetValue(r.Id, out var count) ? count : 0
+            ActiveDeliveriesCount = activeDeliveryCounts.TryGetValue(r.Id, out var count) ? count : 0,
+            DrivingLicense = r.DrivingLicense,
+            VehicleType = r.VehicleType,
+            VehicleNumber = r.VehicleNumber,
+            ApprovalStatus = r.ApprovalStatus ?? "Approved",
+            CreatedAt = r.CreatedAt
         }).OrderBy(r => r.ActiveDeliveriesCount).ThenBy(r => r.Name).ToList();
 
         return Ok(ApiResponse<List<DeliveryPartnerStatusDto>>.Ok(result));
     }
 
-    // GET: /api/users (Admin only: list staff members)
+    // GET: /api/users/pending-riders (Admin only: review self-registered delivery partners)
+    [Authorize(Roles = "Admin")]
+    [HttpGet("pending-riders")]
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetPendingRiders()
+    {
+        var pending = await _context.Users
+            .Where(u => u.Role == "DeliveryBoy" && u.ApprovalStatus == "Pending")
+            .OrderByDescending(u => u.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var dtos = pending.Select(u => new UserDto
+        {
+            Id = u.Id,
+            Name = u.Name,
+            Email = u.Email,
+            Phone = u.Phone,
+            Address = u.Address,
+            City = u.City,
+            Pincode = u.Pincode,
+            Role = u.Role,
+            CreatedAt = u.CreatedAt,
+            DrivingLicense = u.DrivingLicense,
+            DrivingLicenseUrl = u.DrivingLicenseUrl,
+            AadharCardNumber = u.AadharCardNumber,
+            AadharCardUrl = u.AadharCardUrl,
+            VehicleType = u.VehicleType,
+            VehicleNumber = u.VehicleNumber,
+            ApprovalStatus = u.ApprovalStatus,
+            ApprovedAt = u.ApprovedAt,
+            ApprovedBy = u.ApprovedBy,
+            RejectionReason = u.RejectionReason
+        }).ToList();
+
+        return Ok(ApiResponse<List<UserDto>>.Ok(dtos));
+    }
+
+    // PUT: /api/users/{id}/approve-rider (Admin only: Approve or Reject a Delivery Partner)
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:int}/approve-rider")]
+    public async Task<ActionResult<ApiResponse<UserDto>>> ApproveRider(int id, [FromBody] ApproveRiderDto dto)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null || user.Role != "DeliveryBoy")
+        {
+            return NotFound(ApiResponse<UserDto>.Fail("Delivery partner profile not found."));
+        }
+
+        var adminName = User.FindFirstValue(ClaimTypes.Name) ?? "Admin";
+
+        if (dto.IsApproved)
+        {
+            user.ApprovalStatus = "Approved";
+            user.ApprovedAt = DateTime.UtcNow;
+            user.ApprovedBy = adminName;
+            user.RejectionReason = null;
+        }
+        else
+        {
+            user.ApprovalStatus = "Rejected";
+            user.RejectionReason = string.IsNullOrWhiteSpace(dto.RejectionReason)
+                ? "Driving License or documentation verification failed"
+                : dto.RejectionReason.Trim();
+        }
+
+        await _context.SaveChangesAsync();
+
+        var message = dto.IsApproved
+            ? $"Delivery Partner '{user.Name}' verified & approved successfully! They can now log in and take delivery orders."
+            : $"Delivery Partner '{user.Name}' application marked as Rejected.";
+
+        var result = new UserDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Phone = user.Phone,
+            Address = user.Address,
+            City = user.City,
+            Pincode = user.Pincode,
+            Role = user.Role,
+            CreatedAt = user.CreatedAt,
+            DrivingLicense = user.DrivingLicense,
+            DrivingLicenseUrl = user.DrivingLicenseUrl,
+            AadharCardNumber = user.AadharCardNumber,
+            AadharCardUrl = user.AadharCardUrl,
+            VehicleType = user.VehicleType,
+            VehicleNumber = user.VehicleNumber,
+            ApprovalStatus = user.ApprovalStatus,
+            ApprovedAt = user.ApprovedAt,
+            ApprovedBy = user.ApprovedBy,
+            RejectionReason = user.RejectionReason
+        };
+
+        return Ok(ApiResponse<UserDto>.Ok(result, message));
+    }
+
+    // GET: /api/users (Admin only: list staff members, customers, or all users)
     [Authorize(Roles = "Admin")]
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllStaffUsers([FromQuery] string? role)
+    public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllUsers([FromQuery] string? role, [FromQuery] string? search)
     {
         var query = _context.Users.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(role))
         {
-            query = query.Where(u => u.Role.ToLower() == role.Trim().ToLower());
-        }
-        else
-        {
-            // Default to all staff roles
-            query = query.Where(u => u.Role == "Admin" || u.Role == "OrderManager" || u.Role == "DeliveryBoy");
+            var roleLower = role.Trim().ToLower();
+            if (roleLower == "staff")
+            {
+                query = query.Where(u => u.Role == "Admin" || u.Role == "OrderManager" || u.Role == "DeliveryBoy");
+            }
+            else if (roleLower != "all")
+            {
+                query = query.Where(u => u.Role.ToLower() == roleLower);
+            }
         }
 
-        var users = await query.OrderBy(u => u.Role).ThenBy(u => u.Name).ToListAsync();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(u => u.Name.ToLower().Contains(s) || 
+                                     u.Email.ToLower().Contains(s) || 
+                                     (u.Phone != null && u.Phone.Contains(s)) ||
+                                     (u.City != null && u.City.ToLower().Contains(s)));
+        }
+
+        var users = await query
+            .Include(u => u.Orders)
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync();
+
         var dtos = users.Select(u => new UserDto
         {
             Id = u.Id,
@@ -86,7 +204,20 @@ public class UsersController : ControllerBase
             Address = u.Address,
             City = u.City,
             Pincode = u.Pincode,
-            Role = u.Role
+            Role = u.Role,
+            CreatedAt = u.CreatedAt,
+            TotalOrders = u.Orders.Count,
+            TotalSpent = u.Orders.Where(o => o.Status != "Cancelled").Sum(o => o.TotalAmount),
+            DrivingLicense = u.DrivingLicense,
+            DrivingLicenseUrl = u.DrivingLicenseUrl,
+            AadharCardNumber = u.AadharCardNumber,
+            AadharCardUrl = u.AadharCardUrl,
+            VehicleType = u.VehicleType,
+            VehicleNumber = u.VehicleNumber,
+            ApprovalStatus = u.ApprovalStatus ?? "Approved",
+            ApprovedAt = u.ApprovedAt,
+            ApprovedBy = u.ApprovedBy,
+            RejectionReason = u.RejectionReason
         }).ToList();
 
         return Ok(ApiResponse<List<UserDto>>.Ok(dtos));
@@ -121,6 +252,12 @@ public class UsersController : ControllerBase
             City = dto.City?.Trim(),
             Pincode = dto.Pincode?.Trim(),
             Role = normalizedRole,
+            DrivingLicense = dto.DrivingLicense?.Trim()?.ToUpper(),
+            VehicleType = dto.VehicleType?.Trim(),
+            VehicleNumber = dto.VehicleNumber?.Trim()?.ToUpper(),
+            ApprovalStatus = "Approved",
+            ApprovedAt = DateTime.UtcNow,
+            ApprovedBy = User.FindFirstValue(ClaimTypes.Name) ?? "Admin",
             CreatedAt = DateTime.UtcNow
         };
 
@@ -136,7 +273,16 @@ public class UsersController : ControllerBase
             Address = user.Address,
             City = user.City,
             Pincode = user.Pincode,
-            Role = user.Role
+            Role = user.Role,
+            DrivingLicense = user.DrivingLicense,
+            DrivingLicenseUrl = user.DrivingLicenseUrl,
+            AadharCardNumber = user.AadharCardNumber,
+            AadharCardUrl = user.AadharCardUrl,
+            VehicleType = user.VehicleType,
+            VehicleNumber = user.VehicleNumber,
+            ApprovalStatus = user.ApprovalStatus,
+            ApprovedAt = user.ApprovedAt,
+            ApprovedBy = user.ApprovedBy
         };
 
         return Ok(ApiResponse<UserDto>.Ok(result, $"Staff member '{user.Name}' created successfully with role '{user.Role}'."));

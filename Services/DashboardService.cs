@@ -85,6 +85,8 @@ public class DashboardService : IDashboardService
                 CustomerName = o.CustomerName,
                 CustomerPhone = o.CustomerPhone,
                 CustomerEmail = o.User != null ? o.User.Email : null,
+                UserAccountName = o.User != null ? o.User.Name : null,
+                UserAccountPhone = o.User != null ? o.User.Phone : null,
                 DeliveryAddress = o.DeliveryAddress,
                 DeliveryCity = o.DeliveryCity,
                 DeliveryPincode = o.DeliveryPincode,

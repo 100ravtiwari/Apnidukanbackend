@@ -6,11 +6,13 @@ using Microsoft.OpenApi.Models;
 using Dukan.API.Data;
 using Dukan.API.Middleware;
 using Dukan.API.Services;
+using Dukan.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Controllers
+// 1. Add Controllers & SignalR WebSockets
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 // 2. Configure Database (Microsoft SQL Server)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
@@ -33,10 +35,14 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IStorageService, GoogleCloudStorageService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISmsService, SmsService>();
 
 // 4. Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Key"] ?? "Dukan_Super_Secret_Fallback_Key_1234567890!";
+
+var keyBytes = Encoding.UTF8.GetBytes(secretKey);
+var symmetricKey = new SymmetricSecurityKey(keyBytes) { KeyId = "dukan-jwt-key" };
 
 builder.Services.AddAuthentication(options =>
 {
@@ -50,23 +56,41 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        IssuerSigningKey = symmetricKey,
+        IssuerSigningKeys = new[] { symmetricKey },
+        IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) => new[] { symmetricKey },
         ValidateIssuer = true,
         ValidIssuer = jwtSettings["Issuer"] ?? "DukanAPI",
         ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"] ?? "DukanClient",
         ClockSkew = TimeSpan.Zero
     };
+
+    // Support WebSocket JWT token via query string
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/order"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
-// 5. Configure CORS (allow frontend client requests)
+// 5. Configure CORS (allow frontend client requests and SignalR WebSockets)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -131,6 +155,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<OrderHub>("/hubs/order");
 
 // Health check endpoint for Kubernetes probes & monitoring
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));

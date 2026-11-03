@@ -20,7 +20,21 @@ public class GoogleCloudStorageService : IStorageService
         _logger = logger;
         _bucketName = _configuration["GoogleCloudStorage:BucketName"] ?? "dukan-s3";
 
-        // Find credential file: check configured path, backend/gcpkey.json, or ../gcpkey.json
+        // 1. Check for credential JSON directly from Configuration or Environment variable (Ideal for Cloud/CI/CD/Docker)
+        string? credentialJson = _configuration["GoogleCloudStorage:CredentialJson"]
+                              ?? Environment.GetEnvironmentVariable("GCP_SA_KEY")
+                              ?? Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS_JSON");
+
+        if (!string.IsNullOrWhiteSpace(credentialJson))
+        {
+            using var jsonStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(credentialJson));
+            var credential = GoogleCredential.FromStream(jsonStream);
+            _storageClient = StorageClient.Create(credential);
+            _logger.LogInformation("Google Cloud Storage client initialized from JSON credentials (environment/config).");
+            return;
+        }
+
+        // 2. Find credential file: check configured path, backend/gcpkey.json, or ../gcpkey.json
         string keyPath = _configuration["GoogleCloudStorage:CredentialFilePath"] ?? "gcpkey.json";
         if (!Path.IsPathRooted(keyPath))
         {
@@ -36,6 +50,7 @@ public class GoogleCloudStorageService : IStorageService
             }
         }
 
+        // 3. Load from credential file if found, otherwise fallback to Default Application Credentials
         if (File.Exists(keyPath))
         {
             using var keyStream = File.OpenRead(keyPath);

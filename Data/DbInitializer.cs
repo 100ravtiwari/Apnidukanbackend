@@ -17,10 +17,10 @@ public static class DbInitializer
                 Name = "OM General Store Admin",
                 Email = "admin@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                Phone = "+91 9876543210",
-                Address = "Shop #4 & 5, OM General Store, Main Market, Sector 14",
-                City = "Delhi",
-                Pincode = "110001",
+                Phone = "+91 9411188082",
+                Address = "G.I.C Chowk, Champawat",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "Admin",
                 CreatedAt = DateTime.UtcNow
             });
@@ -34,9 +34,9 @@ public static class DbInitializer
                 Email = "customer@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@123"),
                 Phone = "+91 9123456780",
-                Address = "Flat 402, Green Valley Apartments",
-                City = "Delhi",
-                Pincode = "110052",
+                Address = "Malla Bazar, Near Baleshwar Temple",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "Customer",
                 CreatedAt = DateTime.UtcNow
             });
@@ -51,9 +51,9 @@ public static class DbInitializer
                 Email = "manager@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Manager@123"),
                 Phone = "+91 9876500002",
-                Address = "Store Fulfillment Counter, Sector 14",
-                City = "Delhi",
-                Pincode = "110001",
+                Address = "Fulfillment Hub, G.I.C Chowk",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "OrderManager",
                 CreatedAt = DateTime.UtcNow
             });
@@ -68,9 +68,9 @@ public static class DbInitializer
                 Email = "rider1@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Rider@123"),
                 Phone = "+91 9876500001",
-                Address = "Store Delivery Fleet Hub, Sector 14",
-                City = "Delhi",
-                Pincode = "110001",
+                Address = "Main Bus Station, Champawat",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "DeliveryBoy",
                 CreatedAt = DateTime.UtcNow
             });
@@ -85,9 +85,9 @@ public static class DbInitializer
                 Email = "rider2@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Rider@123"),
                 Phone = "+91 9876500003",
-                Address = "Store Delivery Fleet Hub, Sector 14",
-                City = "Delhi",
-                Pincode = "110001",
+                Address = "GIC Chowk Delivery Station",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "DeliveryBoy",
                 CreatedAt = DateTime.UtcNow
             });
@@ -102,9 +102,9 @@ public static class DbInitializer
                 Email = "rider@dukan.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Rider@123"),
                 Phone = "+91 9876500001",
-                Address = "Store Delivery Hub, Sector 14",
-                City = "Delhi",
-                Pincode = "110001",
+                Address = "GIC Chowk Hub, Champawat",
+                City = "Champawat",
+                Pincode = "262523",
                 Role = "DeliveryBoy",
                 CreatedAt = DateTime.UtcNow
             });

@@ -19,6 +19,8 @@ public class ProductService : IProductService
     {
         var dbQuery = _context.Products
             .Include(p => p.Category)
+            .Include(p => p.Variants)
+                .ThenInclude(v => v.VariantDetail)
             .AsNoTracking()
             .AsQueryable();
 
@@ -28,11 +30,12 @@ public class ProductService : IProductService
             dbQuery = dbQuery.Where(p => p.CategoryId == query.CategoryId.Value);
         }
 
-        // Filter by Search text (in name or description)
+        // Filter by Search text (in English or Hindi name or description)
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = query.Search.Trim().ToLower();
             dbQuery = dbQuery.Where(p => p.Name.ToLower().Contains(term) ||
+                                         (p.HindiName != null && p.HindiName.ToLower().Contains(term)) ||
                                          (p.Description != null && p.Description.ToLower().Contains(term)));
         }
 
@@ -67,11 +70,12 @@ public class ProductService : IProductService
         var pageNumber = query.PageNumber > 0 ? query.PageNumber : 1;
         var pageSize = query.PageSize is > 0 and <= 100 ? query.PageSize : 20;
 
-        var items = await dbQuery
+        var products = await dbQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => MapToProductDto(p))
             .ToListAsync();
+
+        var items = products.Select(MapToProductDto).ToList();
 
         var result = new PagedResult<ProductDto>
         {
@@ -88,6 +92,8 @@ public class ProductService : IProductService
     {
         var product = await _context.Products
             .Include(p => p.Category)
+            .Include(p => p.Variants)
+                .ThenInclude(v => v.VariantDetail)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -110,6 +116,9 @@ public class ProductService : IProductService
         var product = new Product
         {
             Name = dto.Name.Trim(),
+            HindiName = dto.HindiName?.Trim(),
+            HsnCode = string.IsNullOrWhiteSpace(dto.HsnCode) ? "1904" : dto.HsnCode.Trim(),
+            GstRate = dto.GstRate,
             Description = dto.Description?.Trim(),
             Price = dto.Price,
             DiscountPrice = dto.DiscountPrice,
@@ -121,18 +130,43 @@ public class ProductService : IProductService
             CreatedAt = DateTime.UtcNow
         };
 
+        if (dto.Variants != null && dto.Variants.Any())
+        {
+            var allVariantDetails = await _context.VariantDetails.AsNoTracking().ToListAsync();
+            foreach (var v in dto.Variants)
+            {
+                var matchedDetail = allVariantDetails.FirstOrDefault(vd =>
+                    vd.VariantName.Equals(v.VariantName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                    vd.VariantName.Equals(v.Unit.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                    $"{vd.UnitValue} {vd.Unit}".Trim().Equals(v.Unit.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                product.Variants.Add(new ProductVariant
+                {
+                    VariantName = v.VariantName.Trim(),
+                    Unit = v.Unit.Trim(),
+                    Price = v.Price,
+                    DiscountPrice = v.DiscountPrice,
+                    StockQuantity = v.StockQuantity,
+                    IsAvailable = v.IsAvailable,
+                    VariantDetailId = matchedDetail?.Id,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
         product.Category = category;
 
-        return ApiResponse<ProductDto>.Ok(MapToProductDto(product), "Product created successfully!");
+        return ApiResponse<ProductDto>.Ok(MapToProductDto(product), "Product created successfully with variants & GST!");
     }
 
     public async Task<ApiResponse<ProductDto>> UpdateProductAsync(int id, UpdateProductDto dto)
     {
         var product = await _context.Products
             .Include(p => p.Category)
+            .Include(p => p.Variants)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
@@ -150,6 +184,9 @@ public class ProductService : IProductService
         }
 
         product.Name = dto.Name.Trim();
+        product.HindiName = dto.HindiName?.Trim();
+        product.HsnCode = dto.HsnCode?.Trim();
+        product.GstRate = dto.GstRate;
         product.Description = dto.Description?.Trim();
         product.Price = dto.Price;
         product.DiscountPrice = dto.DiscountPrice;
@@ -158,6 +195,33 @@ public class ProductService : IProductService
         product.ImageUrl = dto.ImageUrl?.Trim();
         product.IsAvailable = dto.IsAvailable;
         product.CategoryId = dto.CategoryId;
+
+        // If new variants passed, update them
+        if (dto.Variants != null)
+        {
+            _context.ProductVariants.RemoveRange(product.Variants);
+            var allVariantDetails = await _context.VariantDetails.AsNoTracking().ToListAsync();
+            foreach (var v in dto.Variants)
+            {
+                var matchedDetail = allVariantDetails.FirstOrDefault(vd =>
+                    vd.VariantName.Equals(v.VariantName.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                    vd.VariantName.Equals(v.Unit.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                    $"{vd.UnitValue} {vd.Unit}".Trim().Equals(v.Unit.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                product.Variants.Add(new ProductVariant
+                {
+                    ProductId = product.Id,
+                    VariantName = v.VariantName.Trim(),
+                    Unit = v.Unit.Trim(),
+                    Price = v.Price,
+                    DiscountPrice = v.DiscountPrice,
+                    StockQuantity = v.StockQuantity,
+                    IsAvailable = v.IsAvailable,
+                    VariantDetailId = matchedDetail?.Id,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
 
         await _context.SaveChangesAsync();
 
@@ -182,6 +246,7 @@ public class ProductService : IProductService
     {
         var product = await _context.Products
             .Include(p => p.Category)
+            .Include(p => p.Variants)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
@@ -193,13 +258,14 @@ public class ProductService : IProductService
         product.IsAvailable = newStock > 0;
         await _context.SaveChangesAsync();
 
-        return ApiResponse<ProductDto>.Ok(MapToProductDto(product), $"Stock updated to {newStock} units.");
+        return ApiResponse<ProductDto>.Ok(MapToProductDto(product), $"Stock updated to {newStock} successfully!");
     }
 
     public async Task<ApiResponse<ProductDto>> UpdatePriceAsync(int id, decimal price, decimal? discountPrice)
     {
         var product = await _context.Products
             .Include(p => p.Category)
+            .Include(p => p.Variants)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
@@ -230,6 +296,9 @@ public class ProductService : IProductService
         {
             Id = product.Id,
             Name = product.Name,
+            HindiName = product.HindiName,
+            HsnCode = product.HsnCode,
+            GstRate = product.GstRate,
             Description = product.Description,
             Price = product.Price,
             DiscountPrice = product.DiscountPrice,
@@ -239,7 +308,21 @@ public class ProductService : IProductService
             IsAvailable = product.IsAvailable,
             CategoryId = product.CategoryId,
             CategoryName = product.Category?.Name ?? string.Empty,
-            CreatedAt = product.CreatedAt
+            CreatedAt = product.CreatedAt,
+            Variants = product.Variants?.Select(v => new ProductVariantDto
+            {
+                Id = v.Id,
+                ProductId = v.ProductId,
+                VariantDetailId = v.VariantDetailId,
+                VariantName = v.VariantName,
+                Unit = v.Unit,
+                UnitValue = v.VariantDetail?.UnitValue,
+                MeasurementUnit = v.VariantDetail?.Unit,
+                Price = v.Price,
+                DiscountPrice = v.DiscountPrice,
+                StockQuantity = v.StockQuantity,
+                IsAvailable = v.IsAvailable
+            }).ToList() ?? new()
         };
     }
 }

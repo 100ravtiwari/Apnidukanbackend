@@ -14,6 +14,18 @@ public class User
     public string Role { get; set; } = "Customer";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    // Delivery Partner Onboarding & Approval Fields
+    public string? DrivingLicense { get; set; }
+    public string? DrivingLicenseUrl { get; set; }
+    public string? AadharCardNumber { get; set; }
+    public string? AadharCardUrl { get; set; }
+    public string? VehicleType { get; set; }
+    public string? VehicleNumber { get; set; }
+    public string ApprovalStatus { get; set; } = "Approved"; // "Approved", "Pending", "Rejected"
+    public DateTime? ApprovedAt { get; set; }
+    public string? ApprovedBy { get; set; }
+    public string? RejectionReason { get; set; }
+
     // Navigation properties
     public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();

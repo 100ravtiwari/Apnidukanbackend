@@ -66,6 +66,53 @@ public class UploadController : ControllerBase
     }
 
     /// <summary>
+    /// Upload delivery partner onboarding documents (Driving License, Aadhar Card) to Google Cloud Storage
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("rider-document")]
+    [RequestSizeLimit(10_485_760)] // 10 MB limit
+    public async Task<ActionResult<ApiResponse<UploadResponseDto>>> UploadRiderDocument(IFormFile? file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(ApiResponse<UploadResponseDto>.Fail("No document was selected for upload."));
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".pdf" };
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(ext))
+        {
+            return BadRequest(ApiResponse<UploadResponseDto>.Fail(
+                $"Invalid document format '{ext}'. Allowed formats: JPG, JPEG, PNG, WEBP, PDF."));
+        }
+
+        if (file.Length > 10 * 1024 * 1024)
+        {
+            return BadRequest(ApiResponse<UploadResponseDto>.Fail("Document file size exceeds the 10MB limit."));
+        }
+
+        using var stream = file.OpenReadStream();
+        string contentType = string.IsNullOrEmpty(file.ContentType)
+            ? (ext == ".pdf" ? "application/pdf" : "image/jpeg")
+            : file.ContentType;
+
+        var result = await _storageService.UploadImageAsync(stream, $"dl_{file.FileName}", contentType);
+
+        if (!result.Success || string.IsNullOrEmpty(result.Data))
+        {
+            return StatusCode(500, ApiResponse<UploadResponseDto>.Fail(
+                result.Message ?? "Failed to upload document to Google Cloud Storage."));
+        }
+
+        return Ok(ApiResponse<UploadResponseDto>.Ok(new UploadResponseDto
+        {
+            Url = result.Data,
+            FileName = file.FileName,
+            Size = file.Length
+        }, "Document uploaded successfully to GCP!"));
+    }
+
+    /// <summary>
     /// Stream image file securely from cloud storage with HTTP caching
     /// </summary>
     [AllowAnonymous]

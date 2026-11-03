@@ -7,7 +7,7 @@ public interface ICartService
 {
     Task<ApiResponse<CartSummaryDto>> GetCartAsync(int userId);
     Task<ApiResponse<CartSummaryDto>> AddToCartAsync(int userId, AddToCartDto dto);
-    Task<ApiResponse<CartSummaryDto>> UpdateQuantityAsync(int userId, int productId, int quantity);
-    Task<ApiResponse<CartSummaryDto>> RemoveFromCartAsync(int userId, int productId);
+    Task<ApiResponse<CartSummaryDto>> UpdateQuantityAsync(int userId, int productId, int quantity, string? variantName = null);
+    Task<ApiResponse<CartSummaryDto>> RemoveFromCartAsync(int userId, int productId, string? variantName = null);
     Task<ApiResponse<bool>> ClearCartAsync(int userId);
 }

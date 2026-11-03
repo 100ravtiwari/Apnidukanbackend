@@ -29,6 +29,18 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    // Public Onboarding for Delivery Partners (Requires Admin Verification)
+    [HttpPost("register-delivery-partner")]
+    public async Task<ActionResult<ApiResponse<UserDto>>> RegisterDeliveryPartner([FromBody] RegisterDeliveryPartnerDto dto)
+    {
+        var response = await _authService.RegisterDeliveryPartnerAsync(dto);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginDto dto)
     {
@@ -36,6 +48,30 @@ public class AuthController : ControllerBase
         if (!response.Success)
         {
             return Unauthorized(response);
+        }
+        return Ok(response);
+    }
+
+    // Quick-Commerce Blinkit/Zepto Style: Send Mobile OTP
+    [HttpPost("send-mobile-otp")]
+    public async Task<ActionResult<ApiResponse<SendMobileOtpResponseDto>>> SendMobileOtp([FromBody] SendMobileOtpDto dto)
+    {
+        var response = await _authService.SendMobileOtpAsync(dto);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // Quick-Commerce Blinkit/Zepto Style: Verify Mobile OTP & Direct Login / Register
+    [HttpPost("verify-mobile-otp")]
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> VerifyMobileOtp([FromBody] VerifyMobileOtpDto dto)
+    {
+        var response = await _authService.VerifyMobileOtpAsync(dto);
+        if (!response.Success)
+        {
+            return BadRequest(response);
         }
         return Ok(response);
     }

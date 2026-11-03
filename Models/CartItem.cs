@@ -11,5 +11,7 @@ public class CartItem
     public Product? Product { get; set; }
 
     public int Quantity { get; set; }
+    public string? VariantName { get; set; }
+    public decimal? VariantPrice { get; set; }
     public DateTime AddedAt { get; set; } = DateTime.UtcNow;
 }

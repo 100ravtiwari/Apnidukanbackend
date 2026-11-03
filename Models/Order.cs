@@ -12,7 +12,9 @@ public class Order
 
     public decimal SubTotal { get; set; }
     public decimal DeliveryFee { get; set; }
+    public decimal GstTotal { get; set; } = 0.0m;
     public decimal TotalAmount { get; set; }
+    public bool UnavailableSettled { get; set; } = false;
 
     // Status: Pending, Confirmed, Packed, OutForDelivery, Delivered, Cancelled
     public string Status { get; set; } = "Pending";
@@ -35,6 +37,13 @@ public class Order
     public string? DeliveryOtp { get; set; }
     public DateTime? DispatchedAt { get; set; }
     public DateTime? DeliveredAt { get; set; }
+
+    // script2.sql Stage 1: Order Inception Enterprise fields
+    public DateTime? EstimatedDeliveryAt { get; set; }
+    public string? EstimatedTime { get; set; } = "10-15 Minutes";
+    public int OrderActionTypeId { get; set; } = 1; // 1 = No Action (Stage 1 Inception)
+    public string? PgPaymentOrderId { get; set; }
+    public decimal? DistanceKm { get; set; }
 
     // Staff Handling & Rider Assignment
     public int? AssignedRiderId { get; set; }

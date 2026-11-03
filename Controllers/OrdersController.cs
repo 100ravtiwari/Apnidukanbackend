@@ -46,6 +46,36 @@ public class OrdersController : ControllerBase
         return CreatedAtAction(nameof(GetOrderById), new { id = response.Data?.Id }, response);
     }
 
+    // script2.sql Stage 1: Order Inception Online PG Token Initiation
+    [HttpPost("initiate-pg")]
+    public async Task<ActionResult<ApiResponse<InitiatePgPaymentResponseDto>>> InitiatePgPayment([FromBody] InitiatePgPaymentDto dto)
+    {
+        if (CurrentUserId == null)
+            return Unauthorized(ApiResponse<InitiatePgPaymentResponseDto>.Fail("Unauthorized"));
+
+        var response = await _orderService.InitiatePgPaymentAsync(CurrentUserId.Value, dto);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // script2.sql Stage 1: Order Inception PG Confirmation & Transition to Pending (order_action_type_id=1)
+    [HttpPost("confirm-pg")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> ConfirmPgPayment([FromBody] ConfirmPgPaymentDto dto)
+    {
+        if (CurrentUserId == null)
+            return Unauthorized(ApiResponse<OrderDto>.Fail("Unauthorized"));
+
+        var response = await _orderService.ConfirmPgPaymentAsync(CurrentUserId.Value, dto);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
     [HttpGet("my-orders")]
     public async Task<ActionResult<ApiResponse<List<OrderDto>>>> GetMyOrders()
     {
@@ -169,6 +199,54 @@ public class OrdersController : ControllerBase
         return Ok(response);
     }
 
+    // Doorstep UPI payment sync endpoint (used by rider app or auto-polling)
+    [Authorize(Roles = "Admin,OrderManager,DeliveryBoy")]
+    [HttpPost("{id:int}/confirm-doorstep-upi")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> ConfirmDoorstepUpi(int id, [FromBody] ConfirmDoorstepUpiDto? dto)
+    {
+        var response = await _orderService.ConfirmDoorstepUpiPaymentAsync(id, dto?.TransactionRef, dto?.PayerVpa);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // Public Webhook simulator for instant UPI bank notification
+    [AllowAnonymous]
+    [HttpPost("{id:int}/upi-webhook")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> UpiWebhook(int id, [FromBody] ConfirmDoorstepUpiDto? dto)
+    {
+        var response = await _orderService.ConfirmDoorstepUpiPaymentAsync(id, dto?.TransactionRef, dto?.PayerVpa);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // Live status polling endpoint for UPI QR display
+    [Authorize(Roles = "Admin,OrderManager,DeliveryBoy,Customer")]
+    [HttpGet("{id:int}/payment-status")]
+    public async Task<ActionResult<ApiResponse<object>>> GetPaymentStatus(int id)
+    {
+        var response = await _orderService.GetOrderByIdAsync(id, CurrentUserId ?? 0, true);
+        if (!response.Success || response.Data == null)
+            return NotFound(ApiResponse<object>.Fail("Order not found."));
+
+        var order = response.Data;
+        return Ok(ApiResponse<object>.Ok(new
+        {
+            orderId = order.Id,
+            orderNumber = order.OrderNumber,
+            paymentStatus = order.PaymentStatus,
+            paymentMethod = order.PaymentMethod,
+            totalAmount = order.TotalAmount,
+            notes = order.Notes,
+            isPaid = order.PaymentStatus.Equals("Completed", StringComparison.OrdinalIgnoreCase)
+        }));
+    }
+
     [Authorize(Roles = "Admin,OrderManager")]
     [HttpPost("{id:int}/dispatch")]
     public async Task<ActionResult<ApiResponse<OrderDto>>> DispatchOrder(int id, [FromBody] DispatchOrderDto? dto)
@@ -185,7 +263,7 @@ public class OrdersController : ControllerBase
     [HttpPost("{id:int}/verify-delivery")]
     public async Task<ActionResult<ApiResponse<OrderDto>>> VerifyDelivery(int id, [FromBody] VerifyDeliveryOtpDto dto)
     {
-        var response = await _orderService.VerifyDeliveryOtpAsync(id, dto.Otp);
+        var response = await _orderService.VerifyDeliveryOtpAsync(id, dto.Otp, dto.PaymentCollectionMode);
         if (!response.Success)
         {
             return BadRequest(response);
@@ -215,6 +293,44 @@ public class OrdersController : ControllerBase
         {
             return BadRequest(response);
         }
+        return Ok(response);
+    }
+
+    // script2.sql Feature: Handle Kirana rack shortage during packing (Refund or Replace)
+    [Authorize(Roles = "Admin,OrderManager")]
+    [HttpPost("{id:int}/handle-unavailable")]
+    public async Task<ActionResult<ApiResponse<OrderDto>>> HandleUnavailableItem(int id, [FromBody] HandleUnavailableItemDto dto)
+    {
+        var userName = User.Identity?.Name ?? "OrderManager";
+        var response = await _orderService.HandleUnavailableItemAsync(id, dto, userName);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // script2.sql Feature: Log Transit Damage / Leakage / Expiry
+    [Authorize(Roles = "Admin,OrderManager,DeliveryBoy")]
+    [HttpPost("{id:int}/log-loss")]
+    public async Task<ActionResult<ApiResponse<LossLogDto>>> LogLoss(int id, [FromBody] LogLossDto dto)
+    {
+        dto.OrderId = id;
+        var userName = User.Identity?.Name ?? "Staff";
+        var response = await _orderService.LogLossAsync(dto, userName);
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+        return Ok(response);
+    }
+
+    // script2.sql Feature: View all Loss & Damage Audits
+    [Authorize(Roles = "Admin,OrderManager")]
+    [HttpGet("loss-logs")]
+    public async Task<ActionResult<ApiResponse<List<LossLogDto>>>> GetLossLogs()
+    {
+        var response = await _orderService.GetLossLogsAsync();
         return Ok(response);
     }
 }

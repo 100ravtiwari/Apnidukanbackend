@@ -53,12 +53,16 @@ public class CartController : ControllerBase
     }
 
     [HttpPut("{productId:int}")]
-    public async Task<ActionResult<ApiResponse<CartSummaryDto>>> UpdateQuantity(int productId, [FromBody] UpdateCartItemDto dto)
+    public async Task<ActionResult<ApiResponse<CartSummaryDto>>> UpdateQuantity(
+        int productId,
+        [FromBody] UpdateCartItemDto dto,
+        [FromQuery] string? variantName = null)
     {
         if (CurrentUserId == null)
             return Unauthorized(ApiResponse<CartSummaryDto>.Fail("Unauthorized"));
 
-        var response = await _cartService.UpdateQuantityAsync(CurrentUserId.Value, productId, dto.Quantity);
+        var targetVariant = !string.IsNullOrEmpty(dto.VariantName) ? dto.VariantName : variantName;
+        var response = await _cartService.UpdateQuantityAsync(CurrentUserId.Value, productId, dto.Quantity, targetVariant);
         if (!response.Success)
         {
             return BadRequest(response);
@@ -67,12 +71,14 @@ public class CartController : ControllerBase
     }
 
     [HttpDelete("{productId:int}")]
-    public async Task<ActionResult<ApiResponse<CartSummaryDto>>> RemoveItem(int productId)
+    public async Task<ActionResult<ApiResponse<CartSummaryDto>>> RemoveItem(
+        int productId,
+        [FromQuery] string? variantName = null)
     {
         if (CurrentUserId == null)
             return Unauthorized(ApiResponse<CartSummaryDto>.Fail("Unauthorized"));
 
-        var response = await _cartService.RemoveFromCartAsync(CurrentUserId.Value, productId);
+        var response = await _cartService.RemoveFromCartAsync(CurrentUserId.Value, productId, variantName);
         return Ok(response);
     }
 
