@@ -64,3 +64,32 @@ jobs:
 
           echo "Published image: ${FULL_IMAGE}:${IMAGE_TAG}"
 
+      - name: Update GitOps Repository
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+          IMAGE_TAG: ${{ github.sha }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -e
+
+          FULL_IMAGE="${GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+          git clone https://x-access-token:${GITOPS_TOKEN}@github.com/100ravtiwari/apni-dukan-gitops.git gitops
+
+          cd gitops
+
+          sed -i "s|image: .*dukan-repo/backend:.*|image: ${FULL_IMAGE}|" base/backend/rollout.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add base/backend/rollout.yaml
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Deploy backend image ${IMAGE_TAG}"
+            git push origin main
+          else
+            echo "No GitOps changes detected."
+          fi
+
+          echo "GitOps repository updated with ${FULL_IMAGE}"
