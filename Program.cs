@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using Dukan.API.Data;
 using Dukan.API.Middleware;
 using Dukan.API.Services;
@@ -26,7 +27,24 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             errorNumbersToAdd: null);
     }));
 
+// 2b. Configure Redis (StackExchange.Redis) with Resilient Background Connection
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var redisConfig = config.GetSection("Redis");
+    var redisConnString = redisConfig["Configuration"]
+        ?? $"{redisConfig["Host"] ?? "34.93.68.9:6379"},password={redisConfig["Password"]},abortConnect=false,connectTimeout=5000,syncTimeout=5000";
+
+    var options = ConfigurationOptions.Parse(redisConnString);
+    options.AbortOnConnectFail = false; // Never crash on startup if network/host is initializing
+    options.ConnectTimeout = 5000;
+    options.SyncTimeout = 5000;
+    return ConnectionMultiplexer.Connect(options);
+});
+
 // 3. Register Application Services
+builder.Services.AddSingleton<IRedisPersonaService, RedisPersonaService>();
+builder.Services.AddScoped<IHomepageService, HomepageService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();

@@ -13,15 +13,21 @@ public class OrderService : IOrderService
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
     private readonly IHubContext<OrderHub> _hubContext;
+    private readonly IRedisPersonaService? _redisPersonaService;
     private const decimal FreeDeliveryThreshold = 299.00m;
     private const decimal StandardDeliveryFee = 25.00m;
     private const decimal HandlingFee = 2.00m;
 
-    public OrderService(AppDbContext context, IEmailService emailService, IHubContext<OrderHub> hubContext)
+    public OrderService(
+        AppDbContext context,
+        IEmailService emailService,
+        IHubContext<OrderHub> hubContext,
+        IRedisPersonaService? redisPersonaService = null)
     {
         _context = context;
         _emailService = emailService;
         _hubContext = hubContext;
+        _redisPersonaService = redisPersonaService;
     }
 
     private async Task BroadcastOrderEventAsync(string eventName, OrderDto order)
@@ -45,6 +51,7 @@ public class OrderService : IOrderService
         {
             var cartItems = await _context.CartItems
                 .Include(c => c.Product)
+                    .ThenInclude(p => p!.Category)
                 .Where(c => c.UserId == userId)
                 .ToListAsync();
 
@@ -187,6 +194,25 @@ public class OrderService : IOrderService
                 }
 
                 await transaction.CommitAsync();
+
+                // 🛒 Redis User Profiling: Automatically boost buyer's category persona (+5 pts per purchased category)
+                if (_redisPersonaService != null)
+                {
+                    try
+                    {
+                        var purchasedCategories = cartItems
+                            .Where(c => c.Product?.Category != null && !string.IsNullOrWhiteSpace(c.Product.Category.Name))
+                            .Select(c => c.Product!.Category!.Name)
+                            .Distinct()
+                            .ToList();
+
+                        foreach (var cat in purchasedCategories)
+                        {
+                            await _redisPersonaService.TrackUserActionAsync(userId.ToString(), cat, 5.0);
+                        }
+                    }
+                    catch { /* Resilient background tracking */ }
+                }
 
                 var orderDto = MapToOrderDto(order);
                 await BroadcastOrderEventAsync("NewOrderPlaced", orderDto);

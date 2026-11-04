@@ -290,7 +290,7 @@ public class ProductService : IProductService
         return ApiResponse<ProductDto>.Ok(MapToProductDto(product), $"Price updated to ₹{price} successfully!");
     }
 
-    private static ProductDto MapToProductDto(Product product)
+    public static ProductDto MapToProductDto(Product product)
     {
         return new ProductDto
         {
