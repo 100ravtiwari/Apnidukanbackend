@@ -47,3 +47,4 @@ public class RecentSearchesResponseDto
     public string UserId { get; set; } = string.Empty;
     public List<string> Searches { get; set; } = new();
 }
+

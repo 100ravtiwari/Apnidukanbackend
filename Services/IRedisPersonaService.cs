@@ -39,3 +39,4 @@ public interface IRedisPersonaService
     /// </summary>
     Task ClearRecentSearchesAsync(string userId);
 }
+

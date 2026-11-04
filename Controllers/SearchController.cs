@@ -72,3 +72,4 @@ public class SearchController : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true, "Search history cleared."));
     }
 }
+

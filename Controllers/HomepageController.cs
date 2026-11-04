@@ -82,3 +82,4 @@ public class HomepageController : ControllerBase
         return Ok(ApiResponse<List<(string Category, double Score)>>.Ok(scores));
     }
 }
+

@@ -7,3 +7,4 @@ public interface IHomepageService
 {
     Task<ApiResponse<HomepageResponseDto>> GetPersonalizedHomepageAsync(string? userId);
 }
+
