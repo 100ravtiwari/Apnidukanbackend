@@ -9,3 +9,4 @@ public interface IThemeService
     Task<ApiResponse<List<FestivalThemeDto>>> GetAllThemesAsync();
     Task<ApiResponse<FestivalThemeDto>> ActivateThemeAsync(ActivateThemeRequestDto dto);
 }
+

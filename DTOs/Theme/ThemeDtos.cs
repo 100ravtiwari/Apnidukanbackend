@@ -48,3 +48,4 @@ public class ActivateThemeRequestDto
     public string? CustomGreeting { get; set; }
     public string? CustomDate { get; set; }
 }
+
