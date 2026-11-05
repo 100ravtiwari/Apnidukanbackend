@@ -55,6 +55,12 @@ public class ThemeService : IThemeService
                     var parsed = JsonSerializer.Deserialize<FestivalThemeDto>(json.ToString()!, JsonOptions);
                     if (parsed != null)
                     {
+                        var freshPreset = GetDefaultPresets().FirstOrDefault(p => p.ThemeId.Equals(parsed.ThemeId, StringComparison.OrdinalIgnoreCase));
+                        if (freshPreset != null)
+                        {
+                            parsed.FestiveCategories = freshPreset.FestiveCategories;
+                            parsed.GiftShopItems = freshPreset.GiftShopItems;
+                        }
                         parsed.IsActive = true;
                         _inMemoryActiveTheme = parsed;
                         return ApiResponse<FestivalThemeDto>.Ok(parsed);
@@ -163,11 +169,11 @@ public class ThemeService : IThemeService
                 ShowHangingLights = true,
                 FestiveCategories = new()
                 {
-                    new() { Id = "diwali_decor", Title = "Lights, Diya & Diwali Decor", Label = "Diya Set", Icon = "🪔", SearchTag = "Diya", Price = 269, OriginalPrice = 400, ImageUrl = "https://images.unsplash.com/photo-1605647540924-852290f6b0d5?w=500&auto=format&fit=crop&q=80" },
-                    new() { Id = "diwali_pooja", Title = "Flowers & Pooja Needs", Label = "Lakshmi Ganesha", Icon = "🌸", SearchTag = "Pooja", ImageUrl = "https://images.unsplash.com/photo-1609840114035-3c981b782dfe?w=500&auto=format&fit=crop&q=80" },
-                    new() { Id = "diwali_gifting", Title = "Diwali Gifting", Label = "Gift Hampers", Icon = "🎁", SearchTag = "Gift", ImageUrl = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&auto=format&fit=crop&q=80" },
-                    new() { Id = "diwali_dining", Title = "Bedsheets, Decor & Dining", Label = "Home Makeover", Icon = "✨", SearchTag = "Home", ImageUrl = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=500&auto=format&fit=crop&q=80" },
-                    new() { Id = "diwali_gadgets", Title = "Appliances & Kitchen Gadgets", Label = "Diwali Electronics", Icon = "⚡", SearchTag = "Kitchen", ImageUrl = "https://images.unsplash.com/photo-1584269600519-112d071b35e6?w=500&auto=format&fit=crop&q=80" },
+                    new() { Id = "diwali_decor", Title = "Lights, Diya & Diwali Decor", Label = "Diya Set", Icon = "🪔", SearchTag = "Diya", Price = 269, OriginalPrice = 400, ImageUrl = "https://images.unsplash.com/photo-1605378400585-ae0030add9dd?w=600&auto=format&fit=crop&q=80" },
+                    new() { Id = "diwali_pooja", Title = "Flowers & Pooja Needs", Label = "Lakshmi Ganesha", Icon = "🌸", SearchTag = "Pooja", ImageUrl = "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=600&auto=format&fit=crop&q=80" },
+                    new() { Id = "diwali_gifting", Title = "Diwali Gifting", Label = "Gift Hampers", Icon = "🎁", SearchTag = "Gift", ImageUrl = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=600&auto=format&fit=crop&q=80" },
+                    new() { Id = "diwali_dining", Title = "Bedsheets, Decor & Dining", Label = "Home Makeover", Icon = "✨", SearchTag = "Home", ImageUrl = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=600&auto=format&fit=crop&q=80" },
+                    new() { Id = "diwali_gadgets", Title = "Appliances & Kitchen Gadgets", Label = "Diwali Electronics", Icon = "⚡", SearchTag = "Kitchen", ImageUrl = "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80" },
                 },
                 GiftShopItems = new()
                 {
