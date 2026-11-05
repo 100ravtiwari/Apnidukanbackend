@@ -45,6 +45,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 // 3. Register Application Services
 builder.Services.AddSingleton<IRedisPersonaService, RedisPersonaService>();
 builder.Services.AddScoped<IHomepageService, HomepageService>();
+builder.Services.AddScoped<IThemeService, ThemeService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
