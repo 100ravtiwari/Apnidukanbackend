@@ -12,6 +12,7 @@ public class User
     public string? Pincode { get; set; }
     // Roles: "Admin", "Customer", "OrderManager", "DeliveryBoy"
     public string Role { get; set; } = "Customer";
+    public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Delivery Partner Onboarding & Approval Fields

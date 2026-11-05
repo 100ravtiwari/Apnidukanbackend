@@ -337,6 +337,10 @@ public class AuthService : IAuthService
         user.Address = dto.Address?.Trim();
         user.City = dto.City?.Trim();
         user.Pincode = dto.Pincode?.Trim();
+        if (!string.IsNullOrEmpty(dto.ProfileImageUrl))
+        {
+            user.ProfileImageUrl = dto.ProfileImageUrl.Trim();
+        }
 
         await _context.SaveChangesAsync();
 
@@ -390,6 +394,7 @@ public class AuthService : IAuthService
             City = user.City,
             Pincode = user.Pincode,
             Role = user.Role,
+            ProfileImageUrl = user.ProfileImageUrl,
             CreatedAt = user.CreatedAt,
             DrivingLicense = user.DrivingLicense,
             DrivingLicenseUrl = user.DrivingLicenseUrl,

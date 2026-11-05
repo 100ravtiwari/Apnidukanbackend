@@ -74,6 +74,7 @@ public class UserDto
     public string? City { get; set; }
     public string? Pincode { get; set; }
     public string Role { get; set; } = string.Empty;
+    public string? ProfileImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
     public int TotalOrders { get; set; }
     public decimal TotalSpent { get; set; }
@@ -139,6 +140,7 @@ public class UpdateProfileDto
     public string? Address { get; set; }
     public string? City { get; set; }
     public string? Pincode { get; set; }
+    public string? ProfileImageUrl { get; set; }
 }
 
 public class CreateStaffUserDto
