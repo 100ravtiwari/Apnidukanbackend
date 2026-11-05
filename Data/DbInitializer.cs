@@ -86,8 +86,9 @@ public static class DbInitializer
             });
         }
 
-        // 1.b Seed Order Manager account
-        if (!context.Users.Any(u => u.Email == "manager@dukan.com"))
+        // 1.b Seed Order Manager account (manager@dukan.com & order1@gmail.com)
+        var managerUser = context.Users.FirstOrDefault(u => u.Email == "manager@dukan.com");
+        if (managerUser == null)
         {
             context.Users.Add(new User
             {
@@ -99,12 +100,42 @@ public static class DbInitializer
                 City = "Champawat",
                 Pincode = "262523",
                 Role = "OrderManager",
+                ApprovalStatus = "Approved",
                 CreatedAt = DateTime.UtcNow
             });
         }
+        else
+        {
+            managerUser.ApprovalStatus = "Approved";
+        }
 
-        // 1.c Seed Delivery Partner 1 (Ramesh Kumar)
-        if (!context.Users.Any(u => u.Email == "rider1@dukan.com"))
+        var order1User = context.Users.FirstOrDefault(u => u.Email == "order1@gmail.com");
+        if (order1User == null)
+        {
+            context.Users.Add(new User
+            {
+                Name = "Store Order Manager (order1)",
+                Email = "order1@gmail.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Order@123"),
+                Phone = "+91 9876543210",
+                Address = "Fulfillment Counter, GIC Chowk",
+                City = "Champawat",
+                Pincode = "262523",
+                Role = "OrderManager",
+                ApprovalStatus = "Approved",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            order1User.ApprovalStatus = "Approved";
+            order1User.Role = "OrderManager";
+            order1User.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Order@123");
+        }
+
+        // 1.c Seed Delivery Partner 1 (Ramesh Kumar / rider1@dukan.com & delivery1@gmail.com)
+        var rider1User = context.Users.FirstOrDefault(u => u.Email == "rider1@dukan.com");
+        if (rider1User == null)
         {
             context.Users.Add(new User
             {
@@ -116,12 +147,42 @@ public static class DbInitializer
                 City = "Champawat",
                 Pincode = "262523",
                 Role = "DeliveryBoy",
+                ApprovalStatus = "Approved",
                 CreatedAt = DateTime.UtcNow
             });
         }
+        else
+        {
+            rider1User.ApprovalStatus = "Approved";
+        }
+
+        var delivery1User = context.Users.FirstOrDefault(u => u.Email == "delivery1@gmail.com");
+        if (delivery1User == null)
+        {
+            context.Users.Add(new User
+            {
+                Name = "Ramesh Kumar (Delivery Partner)",
+                Email = "delivery1@gmail.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Delivery@123"),
+                Phone = "+91 9876543211",
+                Address = "Delivery Station, GIC Chowk",
+                City = "Champawat",
+                Pincode = "262523",
+                Role = "DeliveryBoy",
+                ApprovalStatus = "Approved",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            delivery1User.ApprovalStatus = "Approved";
+            delivery1User.Role = "DeliveryBoy";
+            delivery1User.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Delivery@123");
+        }
 
         // 1.d Seed Delivery Partner 2 (Suresh Sharma)
-        if (!context.Users.Any(u => u.Email == "rider2@dukan.com"))
+        var rider2User = context.Users.FirstOrDefault(u => u.Email == "rider2@dukan.com");
+        if (rider2User == null)
         {
             context.Users.Add(new User
             {
@@ -133,12 +194,18 @@ public static class DbInitializer
                 City = "Champawat",
                 Pincode = "262523",
                 Role = "DeliveryBoy",
+                ApprovalStatus = "Approved",
                 CreatedAt = DateTime.UtcNow
             });
         }
+        else
+        {
+            rider2User.ApprovalStatus = "Approved";
+        }
 
         // 1.e Seed legacy rider@dukan.com for compatibility
-        if (!context.Users.Any(u => u.Email == "rider@dukan.com"))
+        var riderLegacyUser = context.Users.FirstOrDefault(u => u.Email == "rider@dukan.com");
+        if (riderLegacyUser == null)
         {
             context.Users.Add(new User
             {
@@ -150,8 +217,13 @@ public static class DbInitializer
                 City = "Champawat",
                 Pincode = "262523",
                 Role = "DeliveryBoy",
+                ApprovalStatus = "Approved",
                 CreatedAt = DateTime.UtcNow
             });
+        }
+        else
+        {
+            riderLegacyUser.ApprovalStatus = "Approved";
         }
 
         await context.SaveChangesAsync();
