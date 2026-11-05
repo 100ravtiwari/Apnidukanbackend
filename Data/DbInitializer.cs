@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Dukan.API.Models;
 
 namespace Dukan.API.Data;
@@ -6,6 +7,49 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(AppDbContext context)
     {
+        // 0. Ensure schema columns exist (Safe auto-migration for existing database)
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'ProfileImageUrl')
+                    ALTER TABLE [Users] ADD [ProfileImageUrl] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'DrivingLicense')
+                    ALTER TABLE [Users] ADD [DrivingLicense] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'DrivingLicenseUrl')
+                    ALTER TABLE [Users] ADD [DrivingLicenseUrl] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'AadharCardNumber')
+                    ALTER TABLE [Users] ADD [AadharCardNumber] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'AadharCardUrl')
+                    ALTER TABLE [Users] ADD [AadharCardUrl] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'VehicleType')
+                    ALTER TABLE [Users] ADD [VehicleType] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'VehicleNumber')
+                    ALTER TABLE [Users] ADD [VehicleNumber] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'ApprovalStatus')
+                    ALTER TABLE [Users] ADD [ApprovalStatus] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'ApprovedAt')
+                    ALTER TABLE [Users] ADD [ApprovedAt] DATETIME2 NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'ApprovedBy')
+                    ALTER TABLE [Users] ADD [ApprovedBy] NVARCHAR(MAX) NULL;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'RejectionReason')
+                    ALTER TABLE [Users] ADD [RejectionReason] NVARCHAR(MAX) NULL;
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Schema auto-migration notice: {ex.Message}");
+        }
+
         // Ensure database tables are created
         await context.Database.EnsureCreatedAsync();
 
