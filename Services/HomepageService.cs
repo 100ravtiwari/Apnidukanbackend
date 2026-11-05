@@ -118,9 +118,9 @@ public class HomepageService : IHomepageService
         {
             response.Persona = "general";
             response.HeroBanner = "general_banner.jpg";
-            response.BannerTitle = "10-Minute Kirana & Grocery Delivery";
+            response.BannerTitle = "Superfast Kirana & Grocery Delivery";
             response.BannerSubtitle = "Over 1,000+ daily essentials delivered fast to your doorstep in Champawat";
-            response.BannerTag = "⚡ Instant 10-15 Mins";
+            response.BannerTag = "⚡ Superfast Delivery";
             return;
         }
 
@@ -131,7 +131,7 @@ public class HomepageService : IHomepageService
             response.Persona = "pooja";
             response.HeroBanner = "pooja_banner.jpg";
             response.BannerTitle = "Pooja Samagri & Daily Spiritual Essentials";
-            response.BannerSubtitle = "Pure cow ghee, authentic dhoop, agarbatti, camphor & prayer items in 10 mins";
+            response.BannerSubtitle = "Pure cow ghee, authentic dhoop, agarbatti, camphor & prayer items with superfast delivery";
             response.BannerTag = "🪔 Spiritual & Pure";
         }
         else if (lower.Contains("snack") || lower.Contains("biscuit") || lower.Contains("namkeen") || lower.Contains("beverage"))
@@ -139,8 +139,8 @@ public class HomepageService : IHomepageService
             response.Persona = "snacks";
             response.HeroBanner = "snacks_banner.jpg";
             response.BannerTitle = "Munchies, Biscuits & Evening Snacks";
-            response.BannerSubtitle = "Crispy namkeens, biscuits & hot tea accompaniments in 10-15 mins";
-            response.BannerTag = "🍟 10-Min Munchies";
+            response.BannerSubtitle = "Crispy namkeens, biscuits & hot tea accompaniments with superfast delivery";
+            response.BannerTag = "🍟 Superfast Munchies";
         }
         else if (lower.Contains("dairy") || lower.Contains("milk") || lower.Contains("butter") || lower.Contains("egg"))
         {
@@ -171,7 +171,7 @@ public class HomepageService : IHomepageService
             response.Persona = lower;
             response.HeroBanner = $"{lower}_banner.jpg";
             response.BannerTitle = $"Special Picks in {char.ToUpper(lower[0]) + lower[1..]}";
-            response.BannerSubtitle = "Curated high-quality groceries delivered in 10-15 minutes";
+            response.BannerSubtitle = "Curated high-quality groceries with superfast delivery";
             response.BannerTag = "⭐ Curated For You";
         }
     }
